@@ -4,40 +4,37 @@ import re
 import sys
 from collections import defaultdict
 import requests
+from pathlib import Path
 
 BASE_URL = "https://api.thousandeyes.com/v7"
 TOKEN = "TOKEN"
+OUT_FILE = Path("import-te-tests.tf")
 
 HEADERS = {
     "Accept": "application/hal+json",
     "Authorization": f"Bearer {TOKEN}",
 }
 
-# Mapping ThousandEyes API test types to Terraform resource suffixes
+# Mapping ThousandEyes API test types to full Terraform resource names
 TYPE_MAP = {
-    #web
+    # web
     "api": "thousandeyes_api",
     "web-transactions": "thousandeyes_web_transaction",
     "page-load": "thousandeyes_page_load",
     "http-server": "thousandeyes_http_server",
     "ftp-server": "thousandeyes_ftp_server",
-    
-    #Voice
+    # voice
     "sip-server": "thousandeyes_sip_server",
     "voice": "thousandeyes_voice",
-
-    #Network
+    # network
     "agent-to-agent": "thousandeyes_agent_to_agent",
     "agent-to-server": "thousandeyes_agent_to_server",
-    
-    #DNS
+    # dns
     "dns-server": "thousandeyes_dns_server",
     "dns-trace": "thousandeyes_dns_trace",
     "dnssec": "thousandeyes_dnssec",
-
-    #Routing
+    # routing
     "bgp": "thousandeyes_bgp",
-    
 }
 
 def te_get(path: str, **params):
@@ -56,18 +53,16 @@ def terraformize_name(name: str) -> str:
 
 def terraformize_type(t: str) -> str:
     """
-    Convert TE test 'type' to Terraform resource suffix.
-    1) Use explicit TYPE_MAP when known.
-    2) Fallback: lowercase, replace non [a-z0-9_] with '_', collapse '_'.
+    Return full Terraform resource name (e.g., 'thousandeyes_page_load').
     """
     if not t:
-        return "test"
+        return "thousandeyes_test"
     if t in TYPE_MAP:
         return TYPE_MAP[t]
     s = t.strip().lower()
     s = re.sub(r"[^a-z0-9_]+", "_", s)
     s = re.sub(r"_{2,}", "_", s).strip("_")
-    return s or "test"
+    return f"thousandeyes_{s or 'test'}"
 
 def ensure_unique(names):
     counts = defaultdict(int)
@@ -117,42 +112,41 @@ def main():
         print("No tests list found in response.")
         sys.exit(1)
 
-    minimal = []
+    # Extract & normalize
+    rows = []
     for t in tests:
         test_id = t.get("testId") or t.get("testID") or t.get("id")
         test_name = t.get("testName") or t.get("name")
         test_type = t.get("type") or t.get("testType")
         if not (test_id and test_name and test_type):
             continue
-        minimal.append(
-            {
-                "testId": str(test_id),
-                "testName": str(test_name),
-                "type": str(test_type),
-            }
-        )
+        rows.append({"testId": str(test_id), "testName": str(test_name), "type": str(test_type)})
 
-    if not minimal:
+    if not rows:
         print("No tests with required fields found.")
         sys.exit(0)
 
-    normalized_names = [terraformize_name(m["testName"]) for m in minimal]
-    unique_names = ensure_unique(normalized_names)
+    tf_names = ensure_unique([terraformize_name(r["testName"]) for r in rows])
 
-    result = []
-    for m, tf_name in zip(minimal, unique_names):
-        tf_type = terraformize_type(m["type"])
-        result.append(
-            {
-                "testId": m["testId"],
-                "testName": m["testName"],
-                "type": m["type"],
-                "tf_type": tf_type,
-                "tf_resource_name": tf_name,
-            }
+    # Building the import blocks (deterministic sorted by tf_type, then name)
+    enriched = []
+    for r, tf_name in zip(rows, tf_names):
+        tf_type = terraformize_type(r["type"])
+        enriched.append((tf_type, tf_name, r["testId"]))
+
+    enriched.sort(key=lambda x: (x[0], x[1]))
+
+    blocks = []
+    for tf_type, tf_name, test_id in enriched:
+        blocks.append(
+            f"""import {{
+                to = {tf_type}.{tf_name}
+                id = "{test_id}"
+            }}"""
         )
 
-    print(json.dumps(result, indent=2))
+    OUT_FILE.write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
+    print(f"Wrote {len(blocks)} import block(s) to {OUT_FILE.resolve()}")
 
 if __name__ == "__main__":
     try:
