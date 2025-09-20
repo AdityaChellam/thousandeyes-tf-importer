@@ -1,0 +1,55 @@
+import argparse
+import sys
+from pathlib import Path
+import requests
+
+from .config import OUTPUT_DIR
+from .core.registry import get, all_resources  #To trigger registrations via imports
+
+from .resources import tests as _tests
+from .resources import alerts as _alerts
+from .resources import labels as _labels
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="te2tf",
+        description="Generate Terraform import blocks from ThousandEyes resources.",
+    )
+    parser.add_argument(
+        "resource",
+        nargs="?",
+        default="tests",
+        help=f"Resource to import ({', '.join(all_resources())}); default: tests",
+    )
+    parser.add_argument(
+        "--out",
+        default=OUTPUT_DIR,
+        help=f"Output directory (default: {OUTPUT_DIR})",
+    )
+    args = parser.parse_args()
+
+    try:
+        importer = get(args.resource)
+
+        scope = importer.select_scope()
+        payload = importer.fetch(scope)
+        rows = importer.extract_minimal(payload)
+        if not rows:
+            print("No items with required fields found.")
+            sys.exit(0)
+
+        written = importer.write_imports(rows, Path(args.out))
+        print(f"Wrote {written} import file(s) to {Path(args.out).resolve()}/{args.resource}")
+
+    except requests.HTTPError as e:
+        print(f"HTTP error: {e}\nResponse: {getattr(e, 'response', None) and e.response.text}", file=sys.stderr)
+        sys.exit(1)
+    except requests.RequestException as e:
+        print(f"Request error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(2)
+    except NotImplementedError as e:
+        print(f"Not ready yet: {e}", file=sys.stderr)
+        sys.exit(3)
