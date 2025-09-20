@@ -7,7 +7,7 @@ from ..client import te_get
 from ..config import OUTPUT_DIR
 from ..core.naming import terraformize_name, ensure_unique
 from ..core.files import ensure_dir, write_text
-from ..core.render import import_block
+from ..core.render_tests import import_block
 from ..core.registry import register
 
 # ThousandEyes API test type to Terraform resource name

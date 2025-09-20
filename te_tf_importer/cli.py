@@ -7,8 +7,12 @@ from .config import OUTPUT_DIR
 from .core.registry import get, all_resources  #To trigger registrations via imports
 
 from .resources import tests as _tests
-from .resources import alerts as _alerts
-from .resources import labels as _labels
+from .resources import alert_rules as _alert_rules 
+from .resources import tags as _tags
+from .resources import users as _users
+from .resources import roles as _roles
+from .resources import account_groups as _account_groups
+
 
 def main():
     parser = argparse.ArgumentParser(
