@@ -1,3 +1,4 @@
+
 # thousandeyes-tf-importer
 
 A practical utility to bring existing **ThousandEyes tests** under **Terraform** management. It discovers tests via the v7 API, normalizes names, maps test types to Terraform resources, and emits one **import block** per test for clean, repeatable onboarding.
@@ -30,6 +31,10 @@ A practical utility to bring existing **ThousandEyes tests** under **Terraform**
      ```
 
 Output is written to `output/tests/`, one file per test, sorted deterministically.
+
+
+https://github.com/user-attachments/assets/136fed3d-67d2-4c4f-a794-e423ac7230f8
+
 
 ---
 
