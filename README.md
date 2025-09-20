@@ -57,7 +57,7 @@ pip install -r requirements.txt
 Open `te_tf_importer/config.py`:
 ```python
 BASE_URL = "https://api.thousandeyes.com/v7"
-TOKEN = "PASTE_YOUR_OAUTH_BEARER_TOKEN_HERE"  # Generated from the ThousandEyes Platform
+TOKEN = "PASTE_YOUR_OAUTH_BEARER_TOKEN_HERE"   # without "Bearer " prefix
 
 # Default output folder
 OUTPUT_DIR = "output"
@@ -105,7 +105,7 @@ terraform {
 }
 
 provider "thousandeyes" {
-  token            = "PASTE_YOUR_OAUTH_BEARER_TOKEN"   # without "Bearer " prefix
+  token            = "PASTE_YOUR_OAUTH_BEARER_TOKEN_HERE"   # without "Bearer " prefix
   account_group_id = "AID_USED_ABOVE"
 }
 ```
@@ -142,7 +142,7 @@ https://github.com/user-attachments/assets/37061a1c-9571-47c4-b42e-794ef6833bea
 
 - **401 Unauthorized**: In the **Terraform provider**, use the **raw** token (no “Bearer ”) and the **correct AID**. Verify by importing a single resource with `-target=...`.
 - **Missing files**: Some items may be missing required fields (`testId`, `testName`, `type`) or need a new type mapping.
-- **Name collisions**: The tool auto-dedupes (`_1`, `_2`, …).
+- **Name collisions**: The tool auto-deduplicates (`_1`, `_2`, …).
 
 ---
 
