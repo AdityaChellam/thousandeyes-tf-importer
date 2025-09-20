@@ -132,6 +132,10 @@ terraform apply
 
 You can then refactor the generated resources into your module as needed. After a successful import, the import files can be kept (repeatable onboarding) or removed.
 
+
+https://github.com/user-attachments/assets/37061a1c-9571-47c4-b42e-794ef6833bea
+
+
 ---
 
 ## Troubleshooting (quick)
