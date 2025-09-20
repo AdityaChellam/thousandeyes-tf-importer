@@ -3,7 +3,6 @@ import json
 import re
 import sys
 from collections import defaultdict
-
 import requests
 
 BASE_URL = "https://api.thousandeyes.com/v7"
@@ -14,6 +13,33 @@ HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
 }
 
+# Mapping ThousandEyes API test types to Terraform resource suffixes
+TYPE_MAP = {
+    #web
+    "api": "thousandeyes_api",
+    "web-transactions": "thousandeyes_web_transaction",
+    "page-load": "thousandeyes_page_load",
+    "http-server": "thousandeyes_http_server",
+    "ftp-server": "thousandeyes_ftp_server",
+    
+    #Voice
+    "sip-server": "thousandeyes_sip_server",
+    "voice": "thousandeyes_voice",
+
+    #Network
+    "agent-to-agent": "thousandeyes_agent_to_agent",
+    "agent-to-server": "thousandeyes_agent_to_server",
+    
+    #DNS
+    "dns-server": "thousandeyes_dns_server",
+    "dns-trace": "thousandeyes_dns_trace",
+    "dnssec": "thousandeyes_dnssec",
+
+    #Routing
+    "bgp": "thousandeyes_bgp",
+    
+}
+
 def te_get(path: str, **params):
     url = f"{BASE_URL}{path}"
     r = requests.get(url, headers=HEADERS, params=params or None, timeout=30)
@@ -21,25 +47,29 @@ def te_get(path: str, **params):
     return r.json()
 
 def terraformize_name(name: str) -> str:
-    """
-    Terraform-safe identifier:
-    - lowercase
-    - replace non [a-z0-9_] with _
-    - collapse multiple _
-    - strip leading/trailing _
-    - must start with [a-z_] (prefix '_' if needed)
-    """
     s = (name or "").strip().lower()
     s = re.sub(r"[^a-z0-9_]+", "_", s)
     s = re.sub(r"_{2,}", "_", s).strip("_")
     if not s or not re.match(r"^[a-z_]", s):
         s = f"_{s}" if s else "_test"
-    return s[:128]  # keep sane length
+    return s[:128]
+
+def terraformize_type(t: str) -> str:
+    """
+    Convert TE test 'type' to Terraform resource suffix.
+    1) Use explicit TYPE_MAP when known.
+    2) Fallback: lowercase, replace non [a-z0-9_] with '_', collapse '_'.
+    """
+    if not t:
+        return "test"
+    if t in TYPE_MAP:
+        return TYPE_MAP[t]
+    s = t.strip().lower()
+    s = re.sub(r"[^a-z0-9_]+", "_", s)
+    s = re.sub(r"_{2,}", "_", s).strip("_")
+    return s or "test"
 
 def ensure_unique(names):
-    """
-    For a sequence of names, append _1, _2, ... on duplicates to guarantee uniqueness.
-    """
     counts = defaultdict(int)
     out = []
     for n in names:
@@ -81,14 +111,12 @@ def main():
         print("Selected group is missing an AID.")
         sys.exit(1)
 
-    # Fetch tests
     raw = te_get("/tests", aid=str(aid))
     tests = raw.get("tests") or raw.get("items") or raw
     if not isinstance(tests, list):
         print("No tests list found in response.")
         sys.exit(1)
 
-    # Extract minimal fields
     minimal = []
     for t in tests:
         test_id = t.get("testId") or t.get("testID") or t.get("id")
@@ -108,18 +136,18 @@ def main():
         print("No tests with required fields found.")
         sys.exit(0)
 
-    # Normalizing names and ensure uniqueness
-    normalized = [terraformize_name(m["testName"]) for m in minimal]
-    unique_norm = ensure_unique(normalized)
+    normalized_names = [terraformize_name(m["testName"]) for m in minimal]
+    unique_names = ensure_unique(normalized_names)
 
-    # Attaching normalized names
     result = []
-    for m, tf_name in zip(minimal, unique_norm):
+    for m, tf_name in zip(minimal, unique_names):
+        tf_type = terraformize_type(m["type"])
         result.append(
             {
                 "testId": m["testId"],
                 "testName": m["testName"],
                 "type": m["type"],
+                "tf_type": tf_type,
                 "tf_resource_name": tf_name,
             }
         )
