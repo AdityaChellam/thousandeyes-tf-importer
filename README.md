@@ -3,6 +3,8 @@
 
 A practical utility to bring existing **ThousandEyes tests** under **Terraform** management. It discovers tests via the v7 API, normalizes names, maps test types to Terraform resources, and emits one **import block** per test for clean, repeatable onboarding.
 
+<img width="1152" height="768" alt="ThousandEyes Terraform Importer Logic" src="https://github.com/user-attachments/assets/69e60aea-c097-443f-b9dd-3bf5f321f8b6" />
+
 ---
 
 ## Why it matters
