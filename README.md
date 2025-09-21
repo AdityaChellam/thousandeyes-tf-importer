@@ -1,7 +1,11 @@
 
 # thousandeyes-tf-importer
+## Business Value
+A **streamlined infrastructure management** approach is essential to a **robust observability strategy** - especially for enterprises operating at scale. In reality, estates blend IaC-managed resources with user-created UI configs. ThousandEyes offers a Terraform provider, however, Terraform only "knows" what it created - so unless real-world state is reconciled, configuration drift undermines governance, orchestration, and CI/CD guardrails, creating blind spots during critical incidents where observability is essential.
 
-A practical utility to bring existing **ThousandEyes tests** under **Terraform** management. It discovers tests via the v7 API, normalizes names, maps test types to Terraform resources, and emits one **import block** per test for clean, repeatable onboarding.
+Because "teaching" Terraform the live state becomes non-trivial once test counts reach the hundreds, here’s a **zero-touch automation** that turns click-ops into code and brings everything under orchestrated, pipeline-driven control. A practical utility to bring existing **ThousandEyes tests** under **Terraform** management. It discovers tests via the v7 API, normalizes names, maps test types to Terraform resources, and emits one **import block** per test for clean, repeatable onboarding.
+
+**Outcomes:** reduced operational risk, faster time-to-governed state, and consistent, reviewable observability across teams and environments.
 
 <img width="1152" height="768" alt="ThousandEyes Terraform Importer Logic" src="https://github.com/user-attachments/assets/69e60aea-c097-443f-b9dd-3bf5f321f8b6" />
 
